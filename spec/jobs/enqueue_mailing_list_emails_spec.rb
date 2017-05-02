@@ -119,7 +119,7 @@ describe Jobs::EnqueueMailingListEmails do
       end
 
       it "enqueues the mailing list email job" do
-        Jobs.expects(:enqueue).with(:user_email, type: :mailing_list, user_id: user.id)
+        Jobs.expects(:enqueue).with(:user_mailing_list_email, type: :mailing_list, user_id: user.id)
         Jobs::EnqueueMailingListEmails.new.execute({})
       end
     end
@@ -131,7 +131,7 @@ describe Jobs::EnqueueMailingListEmails do
 
       it "does not enqueue the mailing list email job" do
         SiteSetting.disable_mailing_list_mode = true
-        Jobs.expects(:enqueue).with(:user_email, type: :mailing_list, user_id: user.id).never
+        Jobs.expects(:enqueue).with(:user_mailing_list_email, type: :mailing_list, user_id: user.id).never
         Jobs::EnqueueMailingListEmails.new.execute({})
       end
     end

@@ -6,7 +6,7 @@ module Jobs
     def execute(args)
       return if SiteSetting.disable_mailing_list_mode?
       target_user_ids.each do |user_id|
-        Jobs.enqueue(:user_email, type: :mailing_list, user_id: user_id)
+        Jobs.enqueue(:user_mailing_list_email, type: :mailing_list, user_id: user_id)
       end
     end
 

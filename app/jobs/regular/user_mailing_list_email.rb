@@ -3,16 +3,12 @@ require_dependency 'email/sender'
 module Jobs
 
   # Asynchronously send an email to a user
-  class UserEmail < Jobs::Base
+  class UserMailingListEmail < Jobs::Base
+    sidekiq_options queue: 'special'
 
     def execute(args)
       raise Discourse::InvalidParameters.new(:user_id) unless args[:user_id].present?
       raise Discourse::InvalidParameters.new(:type)    unless args[:type].present?
-
-      if args[:type] == :mailing_list
-        Jobs.enqueue(:user_mailing_list_email, type: args[:type], user_id: args[:user_id])
-        return
-      end
 
       post = nil
       notification = nil
@@ -59,6 +55,17 @@ module Jobs
       mentioned
       group_mentioned
       quoted
+    }
+
+    CRITICAL_EMAIL_TYPES ||= Set.new %w{
+      account_created
+      admin_login
+      confirm_new_email
+      confirm_old_email
+      forgot_password
+      notify_old_email
+      signup
+      signup_after_approval
     }
 
     def message_for_email(user, post, type, notification, notification_type=nil, notification_data_hash=nil, email_token=nil, to_address=nil)
@@ -115,11 +122,11 @@ module Jobs
       email_args[:email_token] = email_token  if email_token.present?
       email_args[:new_email]   = user.email   if type.to_s == "notify_old_email"
 
-      if EmailLog.reached_max_emails?(user, type.to_s)
+      if EmailLog.reached_max_emails?(user)
         return skip_message(I18n.t('email_log.exceeded_emails_limit'))
       end
 
-      if !EmailLog::CRITICAL_EMAIL_TYPES.include?(type.to_s) && user.user_stat.bounce_score >= SiteSetting.bounce_score_threshold
+      if !CRITICAL_EMAIL_TYPES.include?(type.to_s) && user.user_stat.bounce_score >= SiteSetting.bounce_score_threshold
         return skip_message(I18n.t('email_log.exceeded_bounces_limit'))
       end
 
